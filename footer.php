@@ -15,6 +15,6 @@ $metaDescription = "ceci est le footer de mon site.";
         </nav>
     </div>
 </footer>
-<script src="scripts/main.js"></script>
+
 </body>
 </html>

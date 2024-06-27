@@ -1,63 +1,96 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulaire de Contact</title>
-    <?php include 'header.php'?>
-    <?php
-    if ($serveur['REQUEST_METHOD'] == 'POST') {
-        $errors = [];
-    
-        // Récupération et nettoyage des données
-        $civilite = htmlspecialchars($_POST['civilite'] ?? '');//htmlspecialchars est une fonction qui va permettre d'échapper certains caractères spéciaux ("<"">")en les transformant en entités HTML 
-        $nom = htmlspecialchars($_POST['nom'] ?? '');
-        $prenom = htmlspecialchars($_POST['prenom'] ?? '');
-        $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);//FILTER_SANITIZE_EMAIL Supprime tous les caractères sauf les lettres, chiffres, et !#$%&'*+-=?^_`{|}~@.[]. 
-        $raison_contact = htmlspecialchars($_POST['raison_contact'] ?? '');
-        $message = htmlspecialchars($_POST['message'] ?? '');
-    
-        // Vérification du champ nom
-        if (empty($nom)) {//si la case nom est vide 
-            $errors[] = 'Le champ nom est requis.';//variable errors qui demande le champ requis pour validation 
-        }
-    
-        // Vérification du champ prénom
-        if (empty($prenom)) {//si la case prénom est vide
-            $errors[] = 'Le champ prénom est requis.';//variable errors qui demande le champ requis pour validation
-        }
-    
-        // Vérification de l'email
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {//filter_var:filtre une variable avec un filtre spécifique ici dans notre cas $email est filtré avec FILTER_VALIDATE_EMAIL
-            $errors[] = 'Veuillez fournir un email valide.';//variable errors qui demande le champ requis pour validation
-        }
-    
-        // Vérification de la raison de contact
-        $raisons_valides = ['service_comptable', 'support_technique', 'demande_informations'];//variable qui vérifie la que la raison sociale est bien comprise dans celles que nous avons  
-        if (empty($raison_contact) || !in_array($raison_contact, $raisons_valides)) {// !in array ici indique si une valeur appartient a un tableau 
-            $errors[] = 'Veuillez choisir une raison de contact valide.';//variable errors qui demande le champ requis pour validation
-        }
-    
-        // Vérification du message
-        if (empty($message) || strlen($message) < 5) {// strlen fct qui  calcule la taille d'une chaine de caractère 
-            $errors[] = 'Le message doit contenir au moins 5 caractères.';//variable errors qui demande le champ requis pour validation
-        }
-    
-        // Affichage des erreurs ou traitement des données
-        if (empty($errors)) {
-            // Traitez les données ici, comme les envoyer par email ou les sauvegarder en base de données
-            echo "Votre message a été envoyé avec succès.";
-        } else {
-            foreach ($errors as $error) {
-                echo "<p style='color:red;'>$error</p>";
-            }
-        }
-    }
-    ?>
-        
+    <title>Contactez-nous</title>
+</head>
+<body>
+<?php include 'header.php'?>
+    <h2>Contactez-nous</h2>
 
-   
+    <?php
+    // Démarrer la session pour gérer les erreurs et les données
+    session_start();
+
+    // Récupérer les erreurs et les données postées précédemment
+    $errors = isset($_SESSION['errors']) ? $_SESSION['errors'] : [];
+    $formData = isset($_SESSION['formData']) ? $_SESSION['formData'] : [];
+
+    // Détruire les erreurs et les données après l'affichage
+    unset($_SESSION['errors']);
+    unset($_SESSION['formData']);
+    ?>
+    <?php
+// Commencer la session pour stocker les erreurs et les données
+session_start();
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Tableau pour les erreurs
+    $errors = [];
+    // Tableau pour stocker les données valides
+    $formData = [
+        'civilite' => $_POST['civilite'] ?? '',
+        'nom' => $_POST['nom'] ?? '',
+        'prenom' => $_POST['prenom'] ?? '',
+        'email' => $_POST['email'] ?? '',
+        'raison' => $_POST['raison'] ?? '',
+        'message' => $_POST['message'] ?? ''
+    ];
+
+    // Vérification des champs
+    if (!in_array($formData['civilite'], ['Monsieur', 'Madame'])) {
+        $errors['civilite'] = "Veuillez choisir une civilité valide.";
+    }
+
+    if (empty($formData['nom'])) {
+        $errors['nom'] = "Le champ nom est obligatoire.";
+    }
+
+    if (empty($formData['prenom'])) {
+        $errors['prenom'] = "Le champ prénom est obligatoire.";
+    }
+
+    if (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = "L'adresse email est invalide.";
+    }
+
+    $raisonsValides = ['Service comptable', 'Support technique', 'Autre'];
+    if (!in_array($formData['raison'], $raisonsValides)) {
+        $errors['raison'] = "Veuillez choisir une raison valide.";
+    }
+
+    if (strlen($formData['message']) < 5) {
+        $errors['message'] = "Le message doit contenir au moins 5 caractères.";
+    }
+
+    if (empty($errors)) {
+        // Créer le contenu pour le fichier texte
+        $contenu = "Civilité : {$formData['civilite']}\n";
+        $contenu .= "Nom : {$formData['nom']}\n";
+        $contenu .= "Prénom : {$formData['prenom']}\n";
+        $contenu .= "Email : {$formData['email']}\n";
+        $contenu .= "Raison : {$formData['raison']}\n";
+        $contenu .= "Message : {$formData['message']}\n";
+        $contenu .= "---------------------------\n";
+
+        // Enregistrer dans un fichier texte
+        $fichier = 'données_formulaire.txt';
+        file_put_contents($fichier, $contenu, FILE_APPEND | LOCK_EX);
+
+        // Redirection après succès pour éviter la resoumission du formulaire
+        header("Location: index.php?page=contact&success=1");
+        exit;
+    } else {
+        // Enregistrer les erreurs et les données postées pour réafficher le formulaire
+        $_SESSION['errors'] = $errors;
+        $_SESSION['formData'] = $formData;
+        
+        // Redirection pour afficher les erreurs
+        header("Location: index.php?page=contact");
+        exit;
+    }
+}
+?>
     <style>
         /* Styles de base pour une meilleure apparence du formulaire */
         body {
@@ -119,37 +152,42 @@
             color: white;
         }
     </style>
-</head>
-<form action="index.php?page=contact" method="post">
+
+    <form action="index.php?page=contact" method="post">
         <label for="civilite">Civilité :</label>
         <select id="civilite" name="civilite">
-            <option value="M.">M.</option>
-            <option value="Mme">Mme</option>
-            <option value="Mlle">Mlle</option>
-        </select><br><br>
+            <option value="Monsieur" <?= (isset($formData['civilite']) && $formData['civilite'] == 'Monsieur') ? 'selected' : '' ?>>Monsieur</option>
+            <option value="Madame" <?= (isset($formData['civilite']) && $formData['civilite'] == 'Madame') ? 'selected' : '' ?>>Madame</option>
+        </select><br>
+        <?php if (isset($errors['civilite'])) echo "<p style='color:red'>{$errors['civilite']}</p>"; ?>
 
         <label for="nom">Nom :</label>
-        <input type="text" id="nom" name="nom"><br><br>
+        <input type="text" id="nom" name="nom" value="<?= isset($formData['nom']) ? htmlspecialchars($formData['nom']) : '' ?>"><br>
+        <?php if (isset($errors['nom'])) echo "<p style='color:red'>{$errors['nom']}</p>"; ?>
 
         <label for="prenom">Prénom :</label>
-        <input type="text" id="prenom" name="prenom"><br><br>
+        <input type="text" id="prenom" name="prenom" value="<?= isset($formData['prenom']) ? htmlspecialchars($formData['prenom']) : '' ?>"><br>
+        <?php if (isset($errors['prenom'])) echo "<p style='color:red'>{$errors['prenom']}</p>"; ?>
 
         <label for="email">Email :</label>
-        <input type="email" id="email" name="email"><br><br>
+        <input type="email" id="email" name="email" value="<?= isset($formData['email']) ? htmlspecialchars($formData['email']) : '' ?>"><br>
+        <?php if (isset($errors['email'])) echo "<p style='color:red'>{$errors['email']}</p>"; ?>
 
-        <label>Raison du contact :</label><br>
-        <input type="radio" id="comptable" name="raison_contact" value="service_comptable">
-        <label for="comptable">Service Comptable</label><br>
-        <input type="radio" id="support" name="raison_contact" value="support_technique">
-        <label for="support">Support Technique</label><br>
-        <input type="radio" id="info" name="raison_contact" value="demande_informations">
-        <label for="info">Demande d'Informations</label><br><br>
+        <p>Raison du contact :</p>
+        <input type="radio" id="comptable" name="raison" value="Service comptable" <?= (isset($formData['raison']) && $formData['raison'] == 'Service comptable') ? 'checked' : '' ?>>
+        <label for="comptable">Service comptable</label><br>
+        <input type="radio" id="technique" name="raison" value="Support technique" <?= (isset($formData['raison']) && $formData['raison'] == 'Support technique') ? 'checked' : '' ?>>
+        <label for="technique">Support technique</label><br>
+        <input type="radio" id="autre" name="raison" value="Autre" <?= (isset($formData['raison']) && $formData['raison'] == 'Autre') ? 'checked' : '' ?>>
+        <label for="autre">Autre</label><br>
+        <?php if (isset($errors['raison'])) echo "<p style='color:red'>{$errors['raison']}</p>"; ?>
 
         <label for="message">Message :</label><br>
-        <textarea id="message" name="message"></textarea><br><br>
+        <textarea id="message" name="message"><?= isset($formData['message']) ? htmlspecialchars($formData['message']) : '' ?></textarea><br>
+        <?php if (isset($errors['message'])) echo "<p style='color:red'>{$errors['message']}</p>"; ?>
 
-        <button type="submit">Envoyer</button>
+        <input type="submit" value="Envoyer">
     </form>
+    <?php include 'footer.php'; ?>
 </body>
-<?php include 'footer.php'?>
 </html>

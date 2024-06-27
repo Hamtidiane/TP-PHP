@@ -22,4 +22,3 @@ if (isset($_GET['page'])) {
     // Si le paramètre 'page' n'est pas défini, inclure par défaut 'home.php'
     include 'home.php';
 }
-?>
